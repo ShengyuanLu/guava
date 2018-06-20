@@ -17,17 +17,16 @@
 package com.google.common.collect;
 
 import com.google.common.annotations.GwtCompatible;
-
+import com.google.j2objc.annotations.WeakOuter;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
 /**
- * Workaround for
- * <a href="http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6312706">
- * EnumMap bug</a>. If you want to pass an {@code EnumMap}, with the
- * intention of using its {@code entrySet()} method, you should
- * wrap the {@code EnumMap} in this class instead.
+ * Workaround for <a href="http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6312706">EnumMap
+ * bug</a>. If you want to pass an {@code EnumMap}, with the intention of using its {@code
+ * entrySet()} method, you should wrap the {@code EnumMap} in this class instead.
  *
  * <p>This class is not thread-safe even if the underlying map is.
  *
@@ -36,27 +35,28 @@ import java.util.Set;
 @GwtCompatible
 final class WellBehavedMap<K, V> extends ForwardingMap<K, V> {
   private final Map<K, V> delegate;
-  private Set<Entry<K, V>> entrySet;
+  @MonotonicNonNull private Set<Entry<K, V>> entrySet;
 
   private WellBehavedMap(Map<K, V> delegate) {
     this.delegate = delegate;
   }
 
   /**
-   * Wraps the given map into a {@code WellBehavedEntriesMap}, which
-   * intercepts its {@code entrySet()} method by taking the
-   * {@code Set<K> keySet()} and transforming it to
-   * {@code Set<Entry<K, V>>}. All other invocations are delegated as-is.
+   * Wraps the given map into a {@code WellBehavedEntriesMap}, which intercepts its {@code
+   * entrySet()} method by taking the {@code Set<K> keySet()} and transforming it to {@code
+   * Set<Entry<K, V>>}. All other invocations are delegated as-is.
    */
   static <K, V> WellBehavedMap<K, V> wrap(Map<K, V> delegate) {
-    return new WellBehavedMap<K, V>(delegate);
+    return new WellBehavedMap<>(delegate);
   }
 
-  @Override protected Map<K, V> delegate() {
+  @Override
+  protected Map<K, V> delegate() {
     return delegate;
   }
 
-  @Override public Set<Entry<K, V>> entrySet() {
+  @Override
+  public Set<Entry<K, V>> entrySet() {
     Set<Entry<K, V>> es = entrySet;
     if (es != null) {
       return es;
@@ -64,6 +64,7 @@ final class WellBehavedMap<K, V> extends ForwardingMap<K, V> {
     return entrySet = new EntrySet();
   }
 
+  @WeakOuter
   private final class EntrySet extends Maps.EntrySet<K, V> {
     @Override
     Map<K, V> map() {

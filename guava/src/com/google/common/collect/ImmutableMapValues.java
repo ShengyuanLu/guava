@@ -16,13 +16,16 @@
 
 package com.google.common.collect;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
-
+import com.google.j2objc.annotations.Weak;
 import java.io.Serializable;
 import java.util.Map.Entry;
-
-import javax.annotation.Nullable;
+import java.util.Spliterator;
+import java.util.function.Consumer;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * {@code values()} implementation for {@link ImmutableMap}.
@@ -32,8 +35,8 @@ import javax.annotation.Nullable;
  */
 @GwtCompatible(emulated = true)
 final class ImmutableMapValues<K, V> extends ImmutableCollection<V> {
-  private final ImmutableMap<K, V> map;
-  
+  @Weak private final ImmutableMap<K, V> map;
+
   ImmutableMapValues(ImmutableMap<K, V> map) {
     this.map = map;
   }
@@ -48,14 +51,21 @@ final class ImmutableMapValues<K, V> extends ImmutableCollection<V> {
     return new UnmodifiableIterator<V>() {
       final UnmodifiableIterator<Entry<K, V>> entryItr = map.entrySet().iterator();
 
-      @Override public boolean hasNext() {
+      @Override
+      public boolean hasNext() {
         return entryItr.hasNext();
       }
 
-      @Override public V next() {
+      @Override
+      public V next() {
         return entryItr.next().getValue();
-      }      
+      }
     };
+  }
+
+  @Override
+  public Spliterator<V> spliterator() {
+    return CollectSpliterators.map(map.entrySet().spliterator(), Entry::getValue);
   }
 
   @Override
@@ -69,7 +79,7 @@ final class ImmutableMapValues<K, V> extends ImmutableCollection<V> {
   }
 
   @Override
-  ImmutableList<V> createAsList() {
+  public ImmutableList<V> asList() {
     final ImmutableList<Entry<K, V>> entryList = map.entrySet().asList();
     return new ImmutableAsList<V>() {
       @Override
@@ -84,20 +94,31 @@ final class ImmutableMapValues<K, V> extends ImmutableCollection<V> {
     };
   }
 
-  @GwtIncompatible("serialization")
-  @Override Object writeReplace() {
+  @GwtIncompatible // serialization
+  @Override
+  public void forEach(Consumer<? super V> action) {
+    checkNotNull(action);
+    map.forEach((k, v) -> action.accept(v));
+  }
+
+  @GwtIncompatible // serialization
+  @Override
+  Object writeReplace() {
     return new SerializedForm<V>(map);
   }
 
-  @GwtIncompatible("serialization")
+  @GwtIncompatible // serialization
   private static class SerializedForm<V> implements Serializable {
     final ImmutableMap<?, V> map;
+
     SerializedForm(ImmutableMap<?, V> map) {
       this.map = map;
     }
+
     Object readResolve() {
       return map.values();
     }
+
     private static final long serialVersionUID = 0;
   }
 }
